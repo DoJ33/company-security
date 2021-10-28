@@ -1,79 +1,52 @@
-# OCA Addons Repo Template
+# Strict security between companies
 
-This is a template created to make easier the task of maintaining OCA addon
-repositories.
+These modules implement strict security between companies in a database.
+
+A user cannot access any data which is not belonging to the active company or its parent/child companies.
+
+A company manager can access all data in the active company and its parent/child companies.
 
 ## Why?
 
-We have dozens of repos. Most of them look the same, and most of them need
-specific-but-similar configurations for CI, code quality, dependency management, etc.
+With very small, very similar companies, it might be easier to manage them in one database.
 
-We need a place where to evolve those things and push them automatically everywhere
-else.
+## How to install?
 
-This is that place.
+Apply patch:
+- base_company_security/users-company_dependent-partner.patch
+
+Install base_company_security
 
 ## How to use?
 
-This is a template. It is based on [Copier](https://github.com/pykong/copier), go there
-to read its docs to know how it works.
+Create a new company.
+Go to Companies.
+Select the new company.
 
-Quick answer to bootstrap a new repo:
+Users with access to multiple companies should for each company select or create a partner.
 
-```bash
-# Install copier and pre-commit if missing
-pipx install copier
-pipx install pre-commit
-pipx ensurepath
-# Clone this template and answer its questions
-copier copy https://github.com/OCA/oca-addons-repo-template.git some-repo
-# Commit that
-cd some-repo
-git add .
-pre-commit install
-pre-commit run -a
-git commit -am 'Hello world 🖖'
-```
+## Roadmap
 
-Quick answer to update a repo:
+Users form: Button to create a partner (if missing).
 
-```bash
-# Update the repo
-cd some-repo
-copier update
-# Reformat updated files
-pre-commit run
-# Commit update
-git commit -am 'Updated from template'
-# Reformat all other files, in case some pre-commit configuration was updated
-pre-commit run -a || git commit -am 'Reformatted after template update'
-```
+Implement users company_dependent partner for more modules.
+
+Block the database cursor in safe_eval.
+
+Improve company_id for external IDs.
 
 ## How to contribute?
 
-Go read [our contribution guideline](CONTRIBUTING.md).
+You are very welcome to help with the tasks in the roadmap!
+Please sign the OCA document (I would like to move the repo to OCA).
 
-## Supported use cases
+## Author
 
-This template allows to bootstrap and update addon repositories for these Odoo versions:
+AppsToGrow
+Contact: Henrik Norlin
+Email: henrik@appstogrow.co
+Mobile: +4791120745
 
-- 13.0
+## Supported versions
+
 - 14.0
-- 15.0
-
-Future versions will be added as they are released. Past versions could be added as long
-as they don't break existing branches.
-
-Right now this template is tightly coupled with code, guidelines and decisions from OCA.
-You might find some things that you can reuse in your own templates, but in general
-terms this template is not meant to support being used as is for other organizations.
-
-## The legal stuff
-
-Copyright holder: [Odoo Community Association](https://odoo-community.org/).
-
-Template license: [MIT](LICENSE)
-
-License of the rendered repositories: [AGPL](LICENSE.jinja)
-
-License of each module in those rendered repositories: Depends on the module.
