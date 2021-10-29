@@ -12,17 +12,35 @@ _logger = logging.getLogger(__name__)
 # Used for company_id fields, also in hooks.py.
 EXTID_MODULE_NAME = '__base_company_security__'
 
-SECURITY_TYPES = [
-    'company',
-    'company_published',
-    'public',
-    'system',
-    'system_company',
-]
-
 PUBLIC_MODELS = [
+    'res.users',
     'website',
     'website.menu',
+]
+
+SYSTEM_COMPANY_MODELS = [
+    'account.account.type',
+    'ir.actions.act_url',
+    'ir.actions.act_window',
+    'ir.actions.act_window_close',
+    'ir.actions.act_window.view',
+    'ir.actions.actions',
+    'ir.actions.client',
+    'ir.actions.report',
+    'ir.actions.server',
+    'ir.actions.todo',
+    'ir.attachment',
+    'ir.filters',
+    'ir.mail.server',
+    'ir.model.data',
+    'ir.translation',
+    'ir.ui.menu',
+    'ir.ui.view',
+    'mail.template',
+    'res.field',                    # https://github.com/apps2grow/apps/tree/14.0/base_field_value
+    'res.field.selection_value',    # https://github.com/apps2grow/apps/tree/14.0/base_field_value
+    'stock.location',
+    'uom.uom',
 ]
 
 SYSTEM_MODELS = [
@@ -35,18 +53,8 @@ SYSTEM_MODELS = [
     'base.module.upgrade',
     'base.update.translations',
     'base_import.import',
-    'ir.actions.act_url',
-    'ir.actions.act_window', 'ir.actions.act_window_close',
-    'ir.actions.act_window.view',
-    'ir.actions.actions',
-    'ir.actions.client',
-    'ir.actions.report',
-    'ir.actions.server',
-    'ir.actions.todo',
-    'ir.config_parameter',
     'ir.cron',
     'ir.logging',
-    'ir.mail.server',
     'ir.model',
     'ir.model.access',
     'ir.model.constraint',
@@ -58,7 +66,6 @@ SYSTEM_MODELS = [
     'ir.module.module.exclusion',
     'ir.rule',
     'ir.server.object.lines',
-    'ir.ui.menu',
     'res.bank',
     'res.config',
     'res.config.installer',
@@ -85,28 +92,181 @@ SYSTEM_MODELS = [
     'wizard.ir.model.menu.create',
 ]
 
-MODELS_READ_SYSTEM_RECORDS = [
-    'account.account.type',
-    'ir.attachment',
-    'ir.filters',
-    'ir.model.data',
-    'ir.translation',
-    'ir.ui.view',
-    'mail.template',
-    'res.field',                    # base_field_value
-    'res.field.selection_value',    # base_field_value
-    'stock.location',
-    'uom.uom',
+NO_ACCESS_MODELS = [
+    'ir.config_parameter',
 ]
 
-IRREGULAR_SQL_VIEW_NAMES = {
-    # 'view_name': 'model_name',
+# TODO: IRREGULAR_SQL_VIEW_NAMES = {
+#     # 'view_name': 'model_name',
+# }
+
+# NEW, NOT TESTED #####################################################################################
+
+SECURITY_RULES = {
+    'PUBLIC_MODELS': {
+        'read_if': 'allowed',
+        'edit_if': 'allowed AND selected_company/parent/child',
+    },
+    # default
+    'COMPANY_MODELS': {
+        'read_if': 'allowed AND selected_company/parent/child',
+        'edit_if': 'allowed AND selected_company/parent/child',
+    },
+    'SYSTEM_COMPANY_MODELS': {
+        'read_if': 'system OR ( allowed AND selected_company/parent/child )',
+        'edit_if': 'allowed AND selected_company/parent/child',
+    },
+    'SYSTEM_MODELS': {
+        'read_if': 'system',
+        'edit_if': 'system AND ( allowed AND selected_company )',
+    },
+    'NO_ACCESS_MODELS': {
+        'read_if': 'system AND ( allowed AND selected_company )',
+        'edit_if': 'system AND ( allowed AND selected_company )',
+    },
 }
+
+SECURITY_DOMAIN_WORDS = {
+    '(': 'BEGIN',
+    ')': 'END',
+    'AND': "&",
+    'OR': "|",
+    'allowed': "('{company_id}','in',company_ids)",
+    'selected_company': "('{company_id}','=',company_id)",
+    'selected_company/parent/child': "'|',('{company_id}','child_of',company_id),('{company_id}','parent_of',company_id)",
+    'system': "('{company_id}','=',1)",
+}
+
+SECURITY_FIELDS = {
+    'res.company': 'id',
+    'res.users': 'company_ids',
+    'default': 'company_id',
+}
+
+def _get_security_type(model_name):
+    if model_name in PUBLIC_MODELS:
+        return 'public'
+    elif model_name in SYSTEM_COMPANY_MODELS:
+        return 'system_company'
+    elif model_name in SYSTEM_MODELS:
+        return 'system'
+    elif model_name in NO_ACCESS_MODELS:
+        return 'no_access'
+    else:
+        return 'company'
+
+def _assert_security_domain_words_and_order(words_list):
+    type = ''
+    last_type = ''
+    parenthesis_counter = 0
+    first = 0
+    last = len(words_list) - 1
+    for count, word in enumerate(words_list):
+        assert word in SECURITY_DOMAIN_WORDS
+
+        if word == '(':
+            type = 'parenthesis'
+            parenthesis_counter += 1
+        elif word == ')':
+            type = 'parenthesis'
+            parenthesis_counter -= 1
+        elif word in ('AND', 'OR'):
+            type = 'operator'
+        else:
+            type = 'expression'
+
+        assert parenthesis_counter >= 0
+        assert type != last_type
+
+        if count in (first, last):
+            assert type in ('parenthesis', 'expression')
+
+    # There should be max one operator type inside a parenthesis.
+    # This assert is done in the _recursive_words2domain method.
+
+def _recursive_words2domain(words_list):
+    words_sub_list = []
+    domain_list = []
+    parenthesis_counter = 0
+    operator = ''
+    last_operator = ''
+    for word in words_list:
+        if word == '(':
+            if parenthesis_counter > 0:
+                words_sub_list.append(word)
+            parenthesis_counter += 1
+        elif word == ')':
+            parenthesis_counter -= 1
+            if parenthesis_counter > 0:
+                words_sub_list.append(word)
+            else:
+                domain_list.extend(_recursive_words2domain(words_sub_list))
+                last_operator = ''
+        else:
+            if word in ('AND', 'OR'):
+                operator = word
+                assert operator == last_operator or not last_operator
+            words_sub_list.append(word)
+    words_sub_dict = {}
+    for count, word in enumerate(words_sub_dict):
+        if count % 2 == 0:
+            words_sub_dict[count+1] = word
+        else:
+            words_sub_dict[count-1] = word
+
+    for count in range(0, len(words_sub_dict)):
+        if count in words_sub_dict:
+            domain_list.append(SECURITY_DOMAIN_WORDS[words_sub_dict[count]])
+    return domain_list
 
 
 class CompanySecurity(models.AbstractModel):
     _name = 'company.security'
     _description = 'Security between companies'
+
+    # main methods
+
+    def _register_hook(self):
+        self._limit_access_to_system_models()
+        self._set_global_security_rules_on_all_models_except_ir_rule()
+        self._set_company_manager_access_and_rules()
+
+    def _limit_access_to_system_models(self):
+        pass
+
+    def _set_global_security_rules_on_all_models_except_ir_rule(self):
+        models = self['ir.models'].search([('model', '!=', 'ir.rule')])
+        for model in models:
+            security_type = _get_security_type(model._name)
+            for do_if in SECURITY_RULES[security_type]:
+                domain = self._words2domain(do_if)
+                # values = rule_dictionary
+                # self._set_security_rule(values)
+
+    def _set_company_manager_access_and_rules(self):
+        pass
+
+    # low-level methods
+
+    def _words2domain(self, words):
+        words_list = words.split(' ')
+        _assert_security_domain_words_and_order(words_list)
+        domain_list = _recursive_words2domain(words_list)
+        domain_draft = ', '.join(domain_list)
+
+        domain = domain_draft.format(company_id='company_id')
+        return domain
+
+
+# OLD #####################################################################################
+
+SECURITY_TYPES = [
+    'company',
+    'company_published',
+    'public',
+    'system',
+    'system_company',
+    'users',
 
     def _register_hook(self):
         self._protect_system_models()
@@ -116,12 +276,12 @@ class CompanySecurity(models.AbstractModel):
     def _protect_system_models(self):
         system_model_ids = self.env['ir.model'].search([('model', 'in', SYSTEM_MODELS)]).ids
         system_group_ids = (self.env.ref('base.group_erp_manager').id,self.env.ref('base.group_system').id)
-        
+
         # Search for create/write/delete access for non-system users to system models
         #
         # ( group is empty OR not system ) AND ( write OR create OR unlink )
         # (        A       OR     B      ) AND (   C   OR    D   OR    E   )
-        # [ '&', '|', (A), (B), '|', (C), '|', (D), (E) ] 
+        # [ '&', '|', (A), (B), '|', (C), '|', (D), (E) ]
         # https://www.odoo.com/forum/ayuda-1/domain-notation-using-multiple-and-nested-and-2170
 
         ir_model_access_domain = [
@@ -263,7 +423,9 @@ class CompanySecurity(models.AbstractModel):
         type = {}
         for name in models:
 
-            if name in PUBLIC_MODELS:
+            if name == 'res.users':
+                type[name] = 'users'
+            elif name in PUBLIC_MODELS:
                 type[name] = 'public'
             elif name in SYSTEM_MODELS:
                 type[name] = 'system'
@@ -283,14 +445,14 @@ class CompanySecurity(models.AbstractModel):
         for my_model, my_type in type.items():
             if my_type not in SECURITY_TYPES:
                 raise UserError("""'%s' is not a valid security type for model %s. \n
-                                    Valid types : %s \n 
+                                    Valid types : %s \n
                                     Cancelling _get_model_security_type""" % (my_type, my_model, str(SECURITY_TYPES)))
         return type
 
     def _get_security_domains(self):
 
-        # TODO: user
         # system (no access)
+        # users                                                           (company_ids*)
         # public                                                          (company_ids)
         # company                         (child/parent of company_id AND (company_ids))
         # system_company             1 OR (child/parent of company_id AND (company_ids))
@@ -300,9 +462,11 @@ class CompanySecurity(models.AbstractModel):
         rule_system_id = " ('company_id','=',1) "
         rule_company_id = " '|',('company_id','child_of',company_id),('company_id','parent_of',company_id) "
         rule_company_ids = " ('company_id','in',company_ids) "
+        user_company_ids = " ('company_ids','in',company_ids) "
         rule_website_published = " ('website_published','=',True) "
 
         domain = {}
+        domain['users'] =                                      "[%s]" %                                           (user_company_ids)
         domain['public'] =                                     "[%s]" %                                           (rule_company_ids)
         domain['company'] =                           "['&', %s, %s]" %                          (rule_company_id, rule_company_ids)
         domain['system'] =                   "['&', %s, '&', %s, %s]" %          (rule_system_id, rule_company_id, rule_company_ids)
