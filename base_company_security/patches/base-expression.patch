@@ -1,0 +1,22 @@
+diff --git a/odoo/osv/expression.py b/odoo/osv/expression.py
+index a1589a00..fc582d29 100644
+--- a/odoo/osv/expression.py
++++ b/odoo/osv/expression.py
+@@ -656,9 +656,14 @@ class expression(object):
+             elif field.inherited:
+                 parent_model = model.env[field.related_field.model_name]
+                 parent_fname = model._inherits[parent_model._name]
+-                parent_alias = self.query.left_join(
+-                    alias, parent_fname, parent_model._table, 'id', parent_fname,
+-                )
++                if model._name == 'res.users' and parent_model._name == 'res.partner':
++                    parent_alias = model._inherits_query_left_join(self.query,
++                        alias, parent_fname, parent_model._table, 'id', parent_fname,
++                    )
++                else:
++                    parent_alias = self.query.left_join(
++                        alias, parent_fname, parent_model._table, 'id', parent_fname,
++                    )
+                 push(leaf, parent_model, parent_alias)
+ 
+             elif left == 'id' and operator in HIERARCHY_FUNCS:

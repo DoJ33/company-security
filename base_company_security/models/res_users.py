@@ -26,3 +26,8 @@ class Users(models.Model):
 
     def _admin_access(self):
         return "sel_groups_" + str(self.env.ref('base.group_erp_manager').id) + "_" + str(self.env.ref('base.group_system').id)
+
+    ''' CREATE COMPANY_DEPENDENT PARTNER '''
+
+    def create_company_dependent_partner(self):
+        pass

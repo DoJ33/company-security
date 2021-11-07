@@ -5,7 +5,7 @@
     'name': 'Bus Company Security',
 
     'author': 'AppsToGROW',
-    'auto_install': True,
+    'auto_install': False,
     'category': 'Uncategorized',
     'depends': ['bus', 'base_company_security'],
     'license': 'AGPL-3',
