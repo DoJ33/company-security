@@ -83,6 +83,7 @@ READ_SYSTEM_MODEL = [
     'change.password.user',
     'change.password.wizard',
     'l10n_no_payroll.tabelltrekk',
+    'mail.activity.type',
     'mail.alias',
     'payment.icon',
     'report.layout',
