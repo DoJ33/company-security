@@ -20,41 +20,39 @@ index 2e295332..bd97cc38 100644
  select setval('res_users_id_seq', 1);
  
 diff --git a/odoo/addons/base/models/ir_property.py b/odoo/addons/base/models/ir_property.py
-index cc2aa3cf..501c84fe 100644
+index cc2aa3cf..7553fd20 100644
 --- a/odoo/addons/base/models/ir_property.py
 +++ b/odoo/addons/base/models/ir_property.py
-@@ -60,6 +60,29 @@ class Property(models.Model):
+@@ -60,6 +60,27 @@ class Property(models.Model):
                              default='many2one',
                              index=True)
  
-+    resource_id = fields.Integer("Resource ID", compute='_compute_resource_id', store=True, index=True,
-+        help="resource_id and value_reference_id are necessary to join res.users with company_dependent res.partner using standard query.")
-+    value_reference_id = fields.Integer("Value Reference ID", compute='_compute_value_reference_id', store=True, index=True,
-+        help="resource_id and value_reference_id are necessary to join res.users with company_dependent res.partner using standard query.")
++    user_id = fields.Integer("The User", compute='_compute_user_partner_id', store=True, index=True,
++        help="user_id and partner_id are necessary to join res.users with company_dependent res.partner using standard query.")
++    partner_id = fields.Integer("The Company Partner", compute='_compute_user_partner_id', store=True, index=True,
++        help="user_id and partner_id are necessary to join res.users with company_dependent res.partner using standard query.")
 +
-+    @api.depends('res_id')
-+    def _compute_resource_id(self):
++    @api.depends('res_id', 'value_reference')
++    def _compute_user_partner_id(self):
 +        for record in self:
-+            if record.res_id:
-+                r = record.res_id
-+                record.resource_id = int(r[r.find(',')+1:])
++            if record.res_id and record.value_reference:
++                res_model, res_id = record.res_id.split(',')
++                value_reference_model, value_reference_id = record.value_reference.split(',')
++                if res_model == 'res.users' and value_reference_model == 'res.partner':
++                    record.user_id = int(res_id)
++                    record.partner_id = int(value_reference_id)
++                else:
++                    record.user_id = None
++                    record.partner_id = None
 +            else:
-+                record.resource_id = None
-+
-+    @api.depends('value_reference')
-+    def _compute_value_reference_id(self):
-+        for record in self:
-+            if record.value_reference:
-+                r = record.value_reference
-+                record.value_reference_id = int(r[r.find(',')+1:])
-+            else:
-+                record.value_reference_id = None
++                record.user_id = None
++                record.partner_id = None
 +
      def init(self):
          # Ensure there is at most one active variant for each combination.
          query = """
 diff --git a/odoo/addons/base/models/res_users.py b/odoo/addons/base/models/res_users.py
-index a6a5f7cc..5e9de5fe 100644
+index a6a5f7cc..b592d12e 100644
 --- a/odoo/addons/base/models/res_users.py
 +++ b/odoo/addons/base/models/res_users.py
 @@ -282,6 +282,7 @@ class Users(models.Model):
@@ -65,25 +63,24 @@ index a6a5f7cc..5e9de5fe 100644
          string='Related Partner', help='Partner-related data of the user')
      login = fields.Char(required=True, help="Used to log into the system")
      password = fields.Char(
-@@ -1001,6 +1002,70 @@ class Users(models.Model):
+@@ -1001,6 +1002,69 @@ class Users(models.Model):
      def _mfa_url(self):
          """ If an MFA method is enabled, returns the URL for its second step. """
          return
-+        
++
 +    # SQL join; res.users _inherits company_dependent res.parter
 +    def _inherits_query_left_join(self, query, lhs_alias, lhs_column, rhs_table, rhs_column, link, extra=None, extra_params=()):
 +        property_alias = query.left_join(
 +            'res_users',
 +            'id',
 +            'ir_property',
-+            'resource_id',
++            'user_id',
 +            'property_id',
-+            "left(res_users__property_id.res_id, 10) = 'res.users,' AND left(res_users__property_id.value_reference, 12) = 'res.partner,'", # res_id starts with 'res.users' AND value_reference starts with 'res.partner'
++            # "left(res_users__property_id.res_id, 10) = 'res.users,' AND left(res_users__property_id.value_reference, 12) = 'res.partner,'", # res_id starts with 'res.users' AND value_reference starts with 'res.partner'
 +        )
 +        parent_alias = query.left_join(
-+            # 'ir_property',
 +            'res_users__property_id',
-+            'value_reference_id',
++            'partner_id',
 +            'res_partner',
 +            'id',
 +            'partner_id',
@@ -136,45 +133,3 @@ index a6a5f7cc..5e9de5fe 100644
  #
  # Implied groups
  #
-diff --git a/odoo/models.py b/odoo/models.py
-index 37ce8d04..78f8e334 100644
---- a/odoo/models.py
-+++ b/odoo/models.py
-@@ -2433,7 +2433,6 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
-         """
-         Adds missing table select and join clause(s) to ``query`` for reaching
-         the field coming from an '_inherits' parent table (no duplicates).
--
-         :param alias: name of the initial SQL alias
-         :param fname: name of inherited field to reach
-         :param query: query object on which the JOIN should be added
-@@ -3853,7 +3852,28 @@ Fields:
-             parent_data_list = []
-             for data in data_list:
-                 if not data['stored'].get(parent_name):
--                    parent_data_list.append(data)
-+                    # Special case if res.users _inherits company_dependent partner_id
-+                    # TODO: Split the 3 conditions if this will increase the performance
-+                    field = self._fields.get(parent_name)
-+                    if field.company_dependent \
-+                    and self._name == 'res.users' \
-+                    and parent_name == 'partner_id':
-+                        # update/create res.partner
-+                        if 'res.partner' in data['inherited']:
-+                            if 'partner_id' in data['inversed']:
-+                                parent = self.env[model_name].browse(data['inversed'][parent_name])
-+                                parent.write(data['inherited'][model_name])
-+                            else:
-+                                partner = self.env['res.partner'].create(data['inherited']['res.partner'])
-+                                data['inversed']['partner_id'] = partner.id
-+                        # create ir.property
-+                        self.env.cr.execute("select nextval('res_users_id_seq');")
-+                        id = self.env.cr.fetchone()[0]
-+                        partner_id = data['inversed']['partner_id']
-+                        data['stored']['id'] = id
-+                        self.env['ir.property']._set_multi('partner_id', 'res.users', {id: partner_id})
-+                    else:
-+                        parent_data_list.append(data)
-                 elif data['inherited'][model_name]:
-                     parent = self.env[model_name].browse(data['stored'][parent_name])
-                     parent.write(data['inherited'][model_name])

@@ -39,12 +39,12 @@ def _create_initial_company_id_fields(env):
 #         cr,
 #         sql.SQL("""
 #             INSERT INTO ir_property (
-#                 fields_id, company_id, name, type, res_id, resource_id, value_reference, value_reference_id
+#                 fields_id, company_id, name, type, res_id, user_id, value_reference, partner_id
 #             )
 #             SELECT
 #                 {fields_id}, company_id,
 #                 'temp_partner_id', 'many2one',
-#                 'res.users,' || id::TEXT, id, 
+#                 'res.users,' || id::TEXT, id,
 #                 'res.partner,' || temp_partner_id::TEXT, partner_id
 #             FROM res_users
 #             WHERE partner_id IS NOT NULL

@@ -1,15 +1,14 @@
 diff --git a/addons/mail/models/mail_followers.py b/addons/mail/models/mail_followers.py
-index e584b87d..d4eacecd 100644
+index e584b87d..9f052f86 100644
 --- a/addons/mail/models/mail_followers.py
 +++ b/addons/mail/models/mail_followers.py
-@@ -139,7 +139,10 @@ SELECT DISTINCT ON(pid, cid) * FROM (
+@@ -139,7 +139,9 @@ SELECT DISTINCT ON(pid, cid) * FROM (
              partner.active as active, partner.partner_share as pshare, NULL as ctype,
              users.notification_type AS notif, array_agg(groups.id) AS groups
          FROM res_partner partner
 -        LEFT JOIN res_users users ON users.partner_id = partner.id AND users.active
-+        LEFT JOIN ir_property property ON partner.id = property.value_reference_id
-+            AND left(property.res_id, 10) = 'res.users,' AND left(property.value_reference, 12) = 'res.partner,'
-+        LEFT JOIN res_users users ON users.id = property.resource_id
++        LEFT JOIN ir_property property ON partner.id = property.partner_id
++        LEFT JOIN res_users users ON users.id = property.user_id
 +            AND users.active
          LEFT JOIN res_groups_users_rel groups_rel ON groups_rel.uid = users.id
          LEFT JOIN res_groups groups ON groups.id = groups_rel.gid

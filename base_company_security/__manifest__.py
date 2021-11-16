@@ -26,5 +26,8 @@ APPLY PATCHES
 cd /path/to/odoo-server
 git am /path/to/extid-with-company_id.patch
 git am /path/to/users-company_dependent-partner.patch
+
+TODO: If res.users has multiple fields linking to res.partner, only partner_id should trigger read/edit in ir.property.
+(odoo/osv/expression.py)
             ''',
 }
