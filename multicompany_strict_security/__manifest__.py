@@ -2,7 +2,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 {
-            'name': 'base_company_security',
+            'name': 'multicompany_strict_security',
             'summary': 'Patch, Create database, Install',
 
             'author': 'AppsToGROW',
