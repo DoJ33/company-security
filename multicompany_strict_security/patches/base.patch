@@ -76,7 +76,7 @@ index a6a5f7cc..b592d12e 100644
 +            'ir_property',
 +            'user_id',
 +            'property_id',
-+            # "left(res_users__property_id.res_id, 10) = 'res.users,' AND left(res_users__property_id.value_reference, 12) = 'res.partner,'", # res_id starts with 'res.users' AND value_reference starts with 'res.partner'
++            "res_users__property_id.partner_id is not null AND res_users__property_id.company_id = {}".format(self.env.company.id),
 +        )
 +        parent_alias = query.left_join(
 +            'res_users__property_id',
