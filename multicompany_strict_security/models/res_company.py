@@ -30,4 +30,4 @@ class Company(models.Model):
         old_company = self.env.company
         new_company = super(Company, self.sudo()).create(vals)
         new_company.sudo().partner_id.write({'company_id': new_company.id})
-        return old_company
+        return new_company

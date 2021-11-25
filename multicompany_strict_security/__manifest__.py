@@ -35,9 +35,6 @@ git apply /path/to/multicompany_strict_security/patches/*
 
 TODO:
 
-Create new company: Return the new company (otherwise new mail.channel is added to the old company).
-Compare with "normal" behaviour without the strict security.
-
 If res.users has multiple fields linking to res.partner, only partner_id should trigger read/edit in ir.property.
 (odoo/osv/expression.py)
 
@@ -50,5 +47,7 @@ Method self.env.ref('mail.channel_all_employees') should return the json value.
 
 It seems that JSON doesn't replace old values with new values...
 
+Create new company: Add id to URL cids to avoid access error.
+(This doesn't work: self.env.companies = new_company # The new environment "stops" in the api.py.)
             ''',
 }
