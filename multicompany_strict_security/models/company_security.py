@@ -12,10 +12,9 @@ _logger = logging.getLogger(__name__)
 # Used for company_id fields, also in hooks.py.
 EXTID_MODULE_NAME = '__multicompany_strict_security__'
 
-PUBLIC_MODEL = [
+COMPANIES_MODEL = [
+    'res.company',
     'res.users',
-    'website',
-    'website.menu',
 ]
 
 COMPANY_READ_SYSTEM_MODEL = [
@@ -36,6 +35,7 @@ COMPANY_READ_SYSTEM_MODEL = [
     'ir.translation',
     'ir.ui.menu',
     'ir.ui.view',
+    'mail.channel',
     'mail.template',
     'res.field',                    # https://github.com/apps2grow/apps/tree/14.0/base_field_value
     'res.field.selection_value',    # https://github.com/apps2grow/apps/tree/14.0/base_field_value
@@ -103,8 +103,13 @@ IRREGULAR_SQL_VIEW_NAMES = {
 }
 
 SECURITY_RULE = {
-    'PUBLIC_MODEL': {
+    'COMPANIES_MODEL': {
         'read_if': 'allowed_companies',
+        'edit_if': 'allowed_companies AND selected_company/parent/child',
+    },
+    # read user without partner
+    'PARTNER_MODEL': {
+        'read_if': 'false OR ( allowed_companies AND selected_company/parent/child )',
         'edit_if': 'allowed_companies AND selected_company/parent/child',
     },
     # default
@@ -150,9 +155,10 @@ SECURITY_DOMAIN_WORD = {
     ')': 'END',
     'AND': "'&'",
     'OR': "'|'",
+    'false': "('{company_id}','=',False)",
     'allowed_companies': "('{company_id}','in',company_ids)",
     'selected_company': "('{company_id}','=',company_id)",
-    'selected_company/parent/child': "'|',('{company_id}','child_of',company_id),('{company_id}','parent_of',company_id)",
+    'selected_company/parent/child': "'|',('{company_id}','=',company_id),'|',('{company_id}','parent_of',company_id),('{company_id}','child_of',company_id)",
     'system_company': "('{company_id}','=',1)",
 }
 
@@ -163,14 +169,16 @@ COMPANY_FIELD = {
 }
 
 def _get_security_type(model_name):
-    if model_name in NO_ACCESS_MODEL:
+    if model_name == 'res.partner':
+        return 'PARTNER_MODEL'
+    elif model_name in NO_ACCESS_MODEL:
         return 'NO_ACCESS_MODEL'
     elif model_name in READ_SYSTEM_MODEL:
         return 'READ_SYSTEM_MODEL'
     elif model_name in COMPANY_READ_SYSTEM_MODEL:
         return 'COMPANY_READ_SYSTEM_MODEL'
-    elif model_name in PUBLIC_MODEL:
-        return 'PUBLIC_MODEL'
+    elif model_name in COMPANIES_MODEL:
+        return 'COMPANIES_MODEL'
     else:
         return 'COMPANY_MODEL'
 
@@ -374,7 +382,12 @@ class CompanySecurity(models.AbstractModel):
         xmlid_record = self.env['ir.model.data'].search([('module','=',EXTID_MODULE_NAME), ('name','=',xmlid_name)])
         if xmlid_record:
             if xmlid_record.model != record._name or xmlid_record.res_id != record.id:
-                _logger.warning("xmlid {module}.{name} already exists with different model,res_id!")
+                _logger.warning("xmlid {module}.{name} already exists with model {model}, res_id {res_id}!".format(
+                    module=EXTID_MODULE_NAME,
+                    name=xmlid_name,
+                    model=xmlid_record.model,
+                    res_id=xmlid_record.res_id,
+                ))
         else:
             self.env['ir.model.data'].create({
                 'module': EXTID_MODULE_NAME,
