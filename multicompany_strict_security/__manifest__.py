@@ -35,9 +35,6 @@ git apply /path/to/multicompany_strict_security/patches/*
 
 TODO:
 
-If res.users has multiple fields linking to res.partner, only partner_id should trigger read/edit in ir.property.
-(odoo/osv/expression.py)
-
 When changing res.user company_id, the partner is also changing company_id! Should not change.
 
 Restrict so a specific partner can only belong to one user.
@@ -48,6 +45,6 @@ Method self.env.ref('mail.channel_all_employees') should return the json value.
 It seems that JSON doesn't replace old values with new values...
 
 Create new company: Add id to URL cids to avoid access error.
-(This doesn't work: self.env.companies = new_company # The new environment "stops" in the api.py.)
+(This doesn't work: self.env.companies = new_company # The new environment "stops" in the api.py call_kw_model_create.)
             ''',
 }

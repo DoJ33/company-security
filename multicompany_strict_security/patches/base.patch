@@ -20,10 +20,10 @@ index 2e295332..bd97cc38 100644
  select setval('res_users_id_seq', 1);
  
 diff --git a/odoo/addons/base/models/ir_property.py b/odoo/addons/base/models/ir_property.py
-index cc2aa3cf..7553fd20 100644
+index cc2aa3cf..e3874bc9 100644
 --- a/odoo/addons/base/models/ir_property.py
 +++ b/odoo/addons/base/models/ir_property.py
-@@ -60,6 +60,27 @@ class Property(models.Model):
+@@ -60,6 +60,21 @@ class Property(models.Model):
                              default='many2one',
                              index=True)
  
@@ -35,15 +35,9 @@ index cc2aa3cf..7553fd20 100644
 +    @api.depends('res_id', 'value_reference')
 +    def _compute_user_partner_id(self):
 +        for record in self:
-+            if record.res_id and record.value_reference:
-+                res_model, res_id = record.res_id.split(',')
-+                value_reference_model, value_reference_id = record.value_reference.split(',')
-+                if res_model == 'res.users' and value_reference_model == 'res.partner':
-+                    record.user_id = int(res_id)
-+                    record.partner_id = int(value_reference_id)
-+                else:
-+                    record.user_id = None
-+                    record.partner_id = None
++            if record.res_id[:9] == 'res.users' and record.value_reference[:11] == 'res.partner' and record.name == 'partner_id':
++                record.user_id = int(record.res_id.split(',')[1])
++                record.partner_id = int(record.value_reference.split(',')[1])
 +            else:
 +                record.user_id = None
 +                record.partner_id = None
@@ -52,7 +46,7 @@ index cc2aa3cf..7553fd20 100644
          # Ensure there is at most one active variant for each combination.
          query = """
 diff --git a/odoo/addons/base/models/res_users.py b/odoo/addons/base/models/res_users.py
-index a6a5f7cc..b592d12e 100644
+index a6a5f7cc..7e37c497 100644
 --- a/odoo/addons/base/models/res_users.py
 +++ b/odoo/addons/base/models/res_users.py
 @@ -282,6 +282,7 @@ class Users(models.Model):
