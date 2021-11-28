@@ -35,7 +35,6 @@ COMPANY_READ_SYSTEM_MODEL = [
     'ir.translation',
     'ir.ui.menu',
     'ir.ui.view',
-    'mail.channel',
     'mail.template',
     'res.field',                    # https://github.com/apps2grow/apps/tree/14.0/base_field_value
     'res.field.selection_value',    # https://github.com/apps2grow/apps/tree/14.0/base_field_value
@@ -84,7 +83,6 @@ READ_SYSTEM_MODEL = [
     'change.password.wizard',
     'l10n_no_payroll.tabelltrekk',
     'mail.activity.type',
-    'mail.alias',
     'payment.icon',
     'report.layout',
     'report.paperformat',
@@ -256,12 +254,11 @@ class CompanySecurity(models.AbstractModel):
 
     # main methods
 
-    def _register_hook(self):
+    def _secure(self):
         # Returning an error value will be ignored (see loading.py).
         self._set_global_security_rules_on_all_models_except_ir_rule()
         self._add_read_and_edit_access_to_company_manager_on_all_models_except_ir_rule()
         self._set_company_id_to_1_where_null()
-        _logger.info("_register_hook done")
 
     def _set_global_security_rules_on_all_models_except_ir_rule(self):
         models = self.env['ir.model'].search([('model', '!=', 'ir.rule')])
@@ -332,8 +329,9 @@ class CompanySecurity(models.AbstractModel):
             pass
         elif len(record) == 0:
             new_record = self.env[model_name].create(values)
-            if xmlid_name:
-                self._create_external_id(new_record, xmlid_name)
+            # Is this important? Rather save time
+            # if xmlid_name:
+            #     self._create_external_id(new_record, xmlid_name)
         elif len(record) == 1:
             old_values = record.read(fields=values.keys())
             old_values = self._delele_id_and_replace_tuple_with_first_tuple_item(old_values)

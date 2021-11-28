@@ -15,11 +15,14 @@
             'data': [
                 'security/ir.model.access.csv',
                 'security/security.xml',
+                'views/ir.model.data.xml',
                 'views/json_field.xml',
-                'views/views.xml',
+                'views/res.company.xml',
+                'views/res.users.xml',
             ],
             'depends': [
                 'base',
+                'web', # web.assets_backend for json_field
             ],
             'license': 'AGPL-3',
             'pre_init_hook': '_pre_init_hook',
@@ -32,19 +35,19 @@ APPLY PATCHES
 cd /path/to/odoo-server
 git apply /path/to/multicompany_strict_security/patches/*
 
+Administrator (user id 2) is doing the configuration for companies.
 
 TODO:
 
-When changing res.user company_id, the partner is also changing company_id! Should not change.
+res.users stored field company_id change: partner_id company also changes?
 
-Restrict so a specific partner can only belong to one user.
+Only allow to edit user when company_id = user.company_id
 
-Create one mail.channel per company, and define in res.company.json. (Done, but in the wrong company)
-Method self.env.ref('mail.channel_all_employees') should return the json value.
+Not important for security:
 
-It seems that JSON doesn't replace old values with new values...
+*mail.channel form: warning access denied (ir.rule for mail.channel, username = partnername of company 1. Both if company_dependent partner exists or not.)
 
-Create new company: Add id to URL cids to avoid access error.
+*Create new company: Add id to URL cids to avoid access error.
 (This doesn't work: self.env.companies = new_company # The new environment "stops" in the api.py call_kw_model_create.)
             ''',
 }

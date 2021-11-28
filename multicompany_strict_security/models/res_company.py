@@ -23,11 +23,16 @@ class JsonField(fields.Field):
 class Company(models.Model):
     _inherit = 'res.company'
 
-    json = JsonField()
+    json = JsonField(default={"xmlid":{}})
 
     @api.model
     def create(self, vals):
         old_company = self.env.company
         new_company = super(Company, self.sudo()).create(vals)
         new_company.sudo().partner_id.write({'company_id': new_company.id})
+        self.env['company.configure']._configure(new_company)
         return new_company
+
+    def configure(self):
+        companies = self
+        self.env['company.configure']._configure(companies)
