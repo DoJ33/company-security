@@ -55,6 +55,24 @@ index 37ce8d04..c9ebb5d9 100644
                  elif data['inherited'][model_name]:
                      parent = self.env[model_name].browse(data['stored'][parent_name])
                      parent.write(data['inherited'][model_name])
+diff --git a/odoo/modules/loading.py b/odoo/modules/loading.py
+index 8093f14b..933f8776 100644
+--- a/odoo/modules/loading.py
++++ b/odoo/modules/loading.py
+@@ -574,6 +574,13 @@ def load_modules(db, force_demo=False, status=None, update_module=False):
+         # STEP 9: save installed/updated modules for post-install tests
+         registry.updated_modules += processed_modules
+ 
++        # CUSTOM STEP 10: Secure and configure all companies
++        if update_module:
++            env['company.security']._secure()
++            companies = env['res.company'].search([])
++            env['company.configure']._configure(companies)
++            _logger.info("DONE _secure models & _configure {}".format(str(companies)))
++
+ def reset_modules_state(db_name):
+     """
+     Resets modules flagged as "to x" to their original state
 diff --git a/odoo/osv/expression.py b/odoo/osv/expression.py
 index a1589a00..fc582d29 100644
 --- a/odoo/osv/expression.py

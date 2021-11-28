@@ -57,32 +57,6 @@ index e584b87d..168c32a5 100644
  WHERE partner.id IN %s"""
                  params.append(tuple(pids))
              if cids:
-diff --git a/addons/mail/models/res_company.py b/addons/mail/models/res_company.py
-index 3572c903..fb37ef59 100644
---- a/addons/mail/models/res_company.py
-+++ b/addons/mail/models/res_company.py
-@@ -35,3 +35,21 @@ class Company(models.Model):
-                 company.email_formatted = company.catchall_formatted
-             else:
-                 company.email_formatted = ''
-+
-+    @api.model
-+    def create(self, vals):
-+        new_company = super(Company, self).create(vals)
-+        # Create mail.channel
-+        new_mail_channel = self.env['mail.channel'].create({
-+            'name': 'general',
-+            'description': 'General announcements for all employees.',
-+            'group_ids': [(4, self.env.ref('base.group_user').id)],
-+            'company_id': new_company.id,
-+        })
-+        # JSON field: Link xmlid to the channel.
-+        jsn = dict(self.env.company.json or {})
-+        if not 'xmlid' in jsn:
-+            jsn['xmlid'] = {}
-+        jsn['xmlid']['mail.channel_all_employees'] = 'mail.channel,{}'.format(new_mail_channel.id)
-+        new_company.json = jsn
-+        return new_company
 diff --git a/addons/mail/models/res_users.py b/addons/mail/models/res_users.py
 index bd4a3f5b..7f77d507 100644
 --- a/addons/mail/models/res_users.py
