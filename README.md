@@ -1,4 +1,4 @@
-# Strict security between companies
+# Multi-company instead of multi-database
 
 These modules implement strict security between companies in a database.
 
@@ -12,10 +12,10 @@ With very small, very similar companies, it might be easier to manage them in on
 
 ## How to install?
 
-Apply patch:
-- base_company_security/users-company_dependent-partner.patch
+Apply patches:
+- git apply /path/to/multicompany_instead_of_multidatabase/patches/*
 
-Install base_company_security
+Install multicompany_instead_of_multidatabase
 
 ## How to use?
 
@@ -26,10 +26,6 @@ Select the new company.
 Users with access to multiple companies should for each company select or create a partner.
 
 ## Roadmap
-
-Users form: Button to create a partner (if missing).
-
-Implement users company_dependent partner for more modules.
 
 Block the database cursor in safe_eval.
 
