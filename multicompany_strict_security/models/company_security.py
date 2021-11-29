@@ -161,8 +161,14 @@ SECURITY_DOMAIN_WORD = {
 }
 
 COMPANY_FIELD = {
-    'res.company': 'id',
-    'res.users': 'company_ids',
+    'res.company': {
+        'read_if': 'id',
+        'edit_if': 'id',
+    },
+    'res.users': {
+        'read_if': 'company_ids',
+        'edit_if': 'company_id',
+    },
     'default': 'company_id',
 }
 
@@ -207,7 +213,7 @@ def _assert_security_domain_words_and_order(words_list):
             assert type in ('parenthesis', 'expression')
 
     # There should be max one operator type inside a parenthesis.
-    # This assert is done in the _recursive_words2domain method.
+    # This assert is done in the _recursive_order_words method.
 
 def _recursive_order_words(words_list):
     words_sub_list = {}
@@ -230,7 +236,7 @@ def _recursive_order_words(words_list):
         else:
             if word in ('AND', 'OR'):
                 operator = word
-                assert operator == last_operator or not last_operator
+                assert (operator == last_operator) or (not last_operator)
             words_sub_list.setdefault(parenthesis_counter, []).append(word)
     words_sub_dict = {}
     for count, word in enumerate(words_sub_list[0]):
@@ -268,7 +274,7 @@ class CompanySecurity(models.AbstractModel):
                 values = copy.deepcopy(SECURITY_DO_IF[do_if])
                 values['groups'] = []
                 values['model_id'] = model.id
-                values['domain_force'] = self._words2domain(words=domain_words, model=model.model)
+                values['domain_force'] = self._words2domain(do_if=do_if, words=domain_words, model=model.model)
                 values['name'] = '{model} - {security_type}, {do_if}'.format(
                     model=model.model, security_type=SECURITY_TYPE.lower(), do_if=do_if
                 )
@@ -307,14 +313,14 @@ class CompanySecurity(models.AbstractModel):
 
     # low-level methods
 
-    def _words2domain(self, words, model):
+    def _words2domain(self, do_if, words, model):
         words_list = words.split(' ')
         _assert_security_domain_words_and_order(words_list)
         ordered_words_list = _recursive_order_words(words_list)
         ordered_domain_list = [SECURITY_DOMAIN_WORD[word] for word in ordered_words_list]
         domain_draft = "[{}]".format(', ' . join(map(str, ordered_domain_list)))
         if model in COMPANY_FIELD:
-            company_field = COMPANY_FIELD[model]
+            company_field = COMPANY_FIELD[model][do_if]
         else:
             company_field = COMPANY_FIELD['default']
         domain = domain_draft.format(company_id=company_field)

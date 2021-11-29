@@ -39,10 +39,6 @@ Administrator (user id 2) is doing the configuration for companies.
 
 TODO:
 
-res.users stored field company_id change: partner_id company also changes?
-
-Only allow to edit user when company_id = user.company_id
-
 Not important for security:
 
 *mail.channel form: warning access denied (ir.rule for mail.channel, username = partnername of company 1. Both if company_dependent partner exists or not.)
