@@ -7,7 +7,7 @@
 # Check the last link; I have asked if the person would like to make an Odoo module out of this.
 
 {
-            'name': 'multicompany_strict_security',
+            'name': 'multicompany_instead_of_multidatabase',
             'summary': 'Patch, Create database, Install',
 
             'author': 'AppsToGROW',
@@ -33,9 +33,26 @@
             'description': '''
 APPLY PATCHES
 cd /path/to/odoo-server
-git apply /path/to/multicompany_strict_security/patches/*
+git apply /path/to/multicompany_instead_of_multidatabase/patches/*
 
 Administrator (user id 2) is doing the configuration for companies.
+
+SECURITY VULNERABILITIES
+
+Users may run untrusted code in server actions, salary rules, tax rules etc.
+core.patch has additional security for save_eval to forbid certain text phrases in the untrusted code.
+
+If 'odoo.tools.safe_eval.wrap_module' exists in an Odoo module, a python module is whitelisted for safe_eval.
+Check the security of the python module before using the Odoo module.
+
+Below are some methods of the ORM. If they exist in an Odoo module, check the security of the code before using the module.
+.with_company()
+.with_context()
+.with_env()
+.with_prefetch()
+.with_user()
+.sudo()
+
 
 TODO:
 
