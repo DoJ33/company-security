@@ -2,13 +2,13 @@
 <odoo>
     <template
         id="json_field_assets_backend"
-        name="multicompany_strict_security json_field assets_backend"
+        name="multicompany_instead_of_multidatabase json_field assets_backend"
         inherit_id="web.assets_backend"
     >
         <xpath expr="." position="inside">
             <script
                 type="text/javascript"
-                src="/multicompany_strict_security/static/src/js/json_field.js"
+                src="/multicompany_instead_of_multidatabase/static/src/js/json_field.js"
             />
         </xpath>
     </template>

@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 # Module name for external IDs made with python.
 # (Not in XML, so cannot be a module name.)
 # Used for company_id fields, also in hooks.py.
-EXTID_MODULE_NAME = '__multicompany_strict_security__'
+EXTID_MODULE_NAME = '__multicompany_instead_of_multidatabase__'
 
 COMPANIES_MODEL = [
     'res.company',
@@ -286,7 +286,7 @@ class CompanySecurity(models.AbstractModel):
                 self._set_record_values('ir.rule', domain, values, xmlid_name)
 
     def _add_read_and_edit_access_to_company_manager_on_all_models_except_ir_rule(self):
-        group_company_manager_id = self.env.ref('multicompany_strict_security.group_company_manager').id
+        group_company_manager_id = self.env.ref('multicompany_instead_of_multidatabase.group_company_manager').id
         models = self.env['ir.model'].search([('model', '!=', 'ir.rule')])
         for model in models:
             # ir.model.access
