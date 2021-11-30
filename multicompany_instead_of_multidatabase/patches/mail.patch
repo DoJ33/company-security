@@ -1,3 +1,32 @@
+diff --git a/addons/mail/controllers/main.py b/addons/mail/controllers/main.py
+index 4ecd87d3..165e23be 100644
+--- a/addons/mail/controllers/main.py
++++ b/addons/mail/controllers/main.py
+@@ -128,10 +128,12 @@ class MailController(http.Controller):
+ 
+     @http.route('/mail/read_followers', type='json', auth='user')
+     def read_followers(self, res_model, res_id):
++        record = request.env[res_model].browse(res_id)
++        company = record.my_company()
+         request.env['mail.followers'].check_access_rights("read")
+-        request.env[res_model].check_access_rights("read")
+-        request.env[res_model].browse(res_id).check_access_rule("read")
+-        follower_recs = request.env['mail.followers'].search([('res_model', '=', res_model), ('res_id', '=', res_id)])
++        record.check_access_rights("read")
++        record.with_my_company().check_access_rule("read")
++        follower_recs = request.env['mail.followers'].with_company(company).search([('res_model', '=', res_model), ('res_id', '=', res_id)])
+ 
+         followers = []
+         follower_id = None
+@@ -290,7 +292,7 @@ class MailController(http.Controller):
+         records = request.env[model].browse(res_ids)
+         try:
+             records.check_access_rule('read')
+-            records.check_access_rights('read')
++            records.with_my_company().check_access_rights('read')
+         except:
+             return {}
+         return records._message_get_suggested_recipients()
 diff --git a/addons/mail/models/mail_activity.py b/addons/mail/models/mail_activity.py
 index 26e07e00..0e7a133a 100644
 --- a/addons/mail/models/mail_activity.py
