@@ -56,19 +56,21 @@ index 37ce8d04..c9ebb5d9 100644
                      parent = self.env[model_name].browse(data['stored'][parent_name])
                      parent.write(data['inherited'][model_name])
 diff --git a/odoo/modules/loading.py b/odoo/modules/loading.py
-index 8093f14b..933f8776 100644
+index 8093f14b..adb43960 100644
 --- a/odoo/modules/loading.py
 +++ b/odoo/modules/loading.py
-@@ -574,6 +574,13 @@ def load_modules(db, force_demo=False, status=None, update_module=False):
+@@ -574,6 +574,15 @@ def load_modules(db, force_demo=False, status=None, update_module=False):
          # STEP 9: save installed/updated modules for post-install tests
          registry.updated_modules += processed_modules
  
 +        # CUSTOM STEP 10: Secure and configure all companies
 +        if update_module:
-+            env['company.security']._secure()
-+            companies = env['res.company'].search([])
-+            env['company.configure']._configure(companies)
-+            _logger.info("DONE _secure models & _configure {}".format(str(companies)))
++            module = env['ir.module.module'].search([('name', '=', 'multicompany_instead_of_multidatabase'),('state', '=', 'installed')])
++            if module and module.state == 'installed':
++                env['company.security']._secure()
++                companies = env['res.company'].search([])
++                env['company.configure']._configure(companies)
++                _logger.info("DONE _secure models & _configure {}".format(str(companies)))
 +
  def reset_modules_state(db_name):
      """

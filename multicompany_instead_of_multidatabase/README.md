@@ -24,8 +24,13 @@ Apply patches:
 - git apply /path/to/multicompany_instead_of_multidatabase/patches/*
 - git commit
 
-Restart Odoo, create a new database, install the module
+For new database: Restart Odoo, create a new database, install the module
 - python odoo-bin -i multicompany_instead_of_multidatabase -d MYDATABASE
+
+For existing database:
+- Run SQL: "UPDATE ir_module_module SET state = 'to install' WHERE name = 'base';"
+    (state must be 'to install', not 'uninstalled')
+- python odoo-bin -i base,multicompany_instead_of_multidatabase -d MYDATABASE
 
 ## How to use?
 
@@ -62,6 +67,8 @@ Below are some methods of the ORM. If they exist in an Odoo module, check the se
 Error in log just after creating a new company.
 Add company id to URL cids to avoid access error.
 (This doesn't work: self.env.companies = new_company # The new environment "stops" in the api.py call_kw_model_create.)
+
+res.users temp_partner_id should be deleted. I see no method in openupgradelib to completely delete a field! (Just the db column...)
 
 ## Roadmap
 

@@ -1,3 +1,81 @@
+diff --git a/odoo/addons/base/__init__.py b/odoo/addons/base/__init__.py
+index bba00903..cd3a7ebb 100644
+--- a/odoo/addons/base/__init__.py
++++ b/odoo/addons/base/__init__.py
+@@ -6,8 +6,60 @@ from . import models
+ from . import populate
+ from . import report
+ from . import wizard
++from odoo import api, SUPERUSER_ID
++from openupgradelib import openupgrade
++from psycopg2 import sql
+ 
+ 
++def pre_init(cr):
++    """user.partner_id -> company_dependent"""
++
++    if openupgrade.column_exists(cr, 'res_users', 'partner_id'):
++        env = api.Environment(cr, SUPERUSER_ID, {})
++
++        rename_fields = [
++            ('res.users', 'res_users', 'partner_id', 'temp_partner_id'),
++        ]
++        openupgrade.rename_fields(env, rename_fields, no_deep=True)
++
++        add_fields = [
++            ('partner_id', 'res.users', 'res_users', 'integer', 'int4', 'base'),
++            ('user_id', 'ir.property', 'ir_property', 'many2one', 'int4', 'base'),
++            ('partner_id', 'ir.property', 'ir_property', 'many2one', 'int4', 'base'),
++        ]
++        openupgrade.add_fields(env, add_fields)
++
++        cr.execute("SELECT id FROM ir_model_fields "
++                "WHERE name='partner_id' AND model='res.users'")
++        fields_id = cr.fetchone()[0]
++        openupgrade.logged_query(
++            cr,
++            sql.SQL("""
++                INSERT INTO ir_property (
++                    fields_id, company_id, name, type, res_id, user_id, value_reference, partner_id
++                )
++                SELECT
++                    {fields_id}, company_id,
++                    'partner_id', 'many2one',
++                    'res.users,' || id::TEXT, id,
++                    'res.partner,' || temp_partner_id::TEXT, temp_partner_id
++                FROM res_users
++                WHERE temp_partner_id IS NOT NULL
++                AND company_id IS NOT NULL;
++                """.format(fields_id=str(fields_id))
++            )
++        )
++
++        openupgrade.logged_query(
++            cr,
++            sql.SQL("""
++                ALTER TABLE res_users 
++                DROP CONSTRAINT IF EXISTS res_users_partner_id_fkey,
++                DROP COLUMN partner_id;
++            """))
++
++        #openupgrade.drop_columns([('res_users', 'temp_partner_id')]) # How to drop the whole field?
++
+ def post_init(cr, registry):
+     """Rewrite ICP's to force groups"""
+     from odoo import api, SUPERUSER_ID
+diff --git a/odoo/addons/base/__manifest__.py b/odoo/addons/base/__manifest__.py
+index 8ca87a20..989337bf 100644
+--- a/odoo/addons/base/__manifest__.py
++++ b/odoo/addons/base/__manifest__.py
+@@ -85,6 +85,8 @@ The kernel of Odoo, needed for all installation.
+     'test': [],
+     'installable': True,
+     'auto_install': True,
++    'external_dependencies': {'python': ['openupgradelib']},
++    'pre_init_hook': 'pre_init',
+     'post_init_hook': 'post_init',
+     'license': 'LGPL-3',
+ }
 diff --git a/odoo/addons/base/data/base_data.sql b/odoo/addons/base/data/base_data.sql
 index 2e295332..bd97cc38 100644
 --- a/odoo/addons/base/data/base_data.sql

@@ -1,5 +1,11 @@
 from odoo import models
 
+"""
+Is this useful?
+from odoo.tools import populate
+See base/populate/res_company.py res_partner.py res_user.py
+"""
+
 class CompanyConfigure(models.AbstractModel):
     _name = 'company.configure'
     _description = 'Set initial records on a new company'

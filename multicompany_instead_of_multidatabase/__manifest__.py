@@ -25,6 +25,7 @@
         'web', # web.assets_backend for json_field
     ],
     'license': 'AGPL-3',
+    'external_dependencies': {'python': ['openupgradelib']},
     'pre_init_hook': '_pre_init_hook',
     'uninstall_hook': '_WARNING_DELETE_RULES_uninstall_hook',
     'version': '14.0.1.0.0',
