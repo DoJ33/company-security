@@ -34,18 +34,19 @@ class CompanyConfigure(models.AbstractModel):
             company.json = company_json
 
     def _set_mail_channel_all_employees(self, company_json):
-        group_user_id = self.env.ref('base.group_user').id
-        mail_channel_all_employees = self._insert_first_record(
-            'mail.channel',
-            [('group_ids', 'in', [group_user_id])],
-            {
-                'name': 'general',
-                'description': 'General announcements for all employees.',
-                'group_ids': [(4, group_user_id), 0],
-            })
-        if mail_channel_all_employees:
-            # set is_pinned for mail.channel.partner
-            company_json['xmlid']['mail.channel_all_employees'] = 'mail.channel,{}'.format(mail_channel_all_employees.id)
+        if 'mail.channel_all_employees' not in company_json['xmlid']:
+            group_user_id = self.env.ref('base.group_user').id
+            mail_channel_all_employees = self._insert_first_record(
+                'mail.channel',
+                [('group_ids', 'in', [group_user_id])],
+                {
+                    'name': 'general',
+                    'description': 'General announcements for all employees.',
+                    'group_ids': [(4, group_user_id), 0],
+                })
+            if mail_channel_all_employees:
+                # set is_pinned for mail.channel.partner
+                company_json['xmlid']['mail.channel_all_employees'] = 'mail.channel,{}'.format(mail_channel_all_employees.id)
         return company_json
 
     def _insert_first_record(self, model, domain, values, copy=False, add_company_id=False):
